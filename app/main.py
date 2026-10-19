@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 
 from app.database import engine
-from app.routers import orders, products, users
+from app.routers import orders, payments, products, users, webhooks
 from app.payment_providers import build_payment_providers
 from app.config import get_settings
 
@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(users.router)
     app.include_router(products.router)
     app.include_router(orders.router)
+    app.include_router(payments.router)
+    app.include_router(webhooks.router)
     return app
 
 
