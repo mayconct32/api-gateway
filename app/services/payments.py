@@ -119,7 +119,6 @@ class PaymentService:
             order_id=order.id,
             user_id=current_user.id,
             provider=payload.provider.value,
-            # BRL: valor em centavos direto do pedido.
             amount_cents=order.total_cents,
             currency="BRL",
             status=PaymentStatus.PENDING.value,

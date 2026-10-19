@@ -35,7 +35,6 @@ class ProductService:
             Product(
                 name=payload.name,
                 description=payload.description,
-                # Preço convertido para centavos no servidor.
                 price_cents=brl_to_cents(payload.price),
                 is_active=True,
             )

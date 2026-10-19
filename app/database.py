@@ -6,7 +6,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.config import get_settings
 
-# Motor compartilhado pela aplicação, criado uma única vez.
 _settings = get_settings()
 
 # SQLite abre arquivos locais: desabilita o pool de threads e permite
@@ -18,8 +17,6 @@ else:
 
 engine = create_engine(_settings.database_url, **_engine_args)
 
-# Sessões são criadas por request via Depends(get_db); cada request
-# recebe a sua própria transação, com commit/rollback explícitos.
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

@@ -45,7 +45,6 @@ class RazorpayPaymentLink:
 
         base_url = get_settings().base_url.rstrip("/")
         create_request = {
-            # Centavos em BRL: o Razorpay exige unidades menores (paisa/centavos)
             "amount": amount_cents,
             "currency": "BRL",
             "accept_partial": False,

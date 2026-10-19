@@ -10,7 +10,6 @@ from app.services.payments import PaymentService
 
 router = APIRouter(prefix="/api/v1/payments/webhooks", tags=["webhooks"])
 
-# Cabeçalho de assinatura por provedor.
 SIGNATURE_HEADERS = {
     PaymentProviderEnum.STRIPE: "stripe-signature",
     PaymentProviderEnum.RAZORPAY: "x-razorpay-signature",

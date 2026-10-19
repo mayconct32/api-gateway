@@ -41,7 +41,6 @@ class StripePaymentLink:
 
         base_url = get_settings().base_url.rstrip("/")
         try:
-            # Valores em centavos (unidade menor do Stripe) e moeda BRL.
             session = stripe.checkout.Session.create(
                 mode="payment",
                 customer_email=user_email,
