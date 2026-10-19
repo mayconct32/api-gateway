@@ -6,13 +6,19 @@ gateway (consulta direta ou webhook com assinatura validada).
 """
 
 import logging
+from typing import Any
 
-from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.enums import OrderStatus, PaymentProviderEnum, PaymentStatus
+from app.exceptions import (
+    AccessDeniedError,
+    InvalidOperationError,
+    NotFoundError,
+    PaymentProviderUnavailableError,
+)
 from app.models.order import Order
+from app.models.payment import Payment
 from app.models.user import User, UserRole
 from app.payment_providers import (
     PaymentGatewayError,
@@ -27,8 +33,6 @@ from app.schemas.payments import (
     PaymentVerifyResponse,
     VerifyPaymentRequest,
 )
-
-from app.models.payment import Payment
 
 
 logger = logging.getLogger(__name__)
@@ -48,54 +52,44 @@ class PaymentService:
         self.providers = providers
 
     def _provider_for(self, provider: PaymentProviderEnum) -> PaymentLinkProvider:
-        """Garante que o usuário escolheu um provedor disponível."""
+        """Provedor solicitado, se estiver configurado na aplicação.
+
+        Provedor válido porém sem credenciais configuradas é erro do
+        ambiente, não do cliente (a tradução aponta como indisponibilidade).
+        """
         provider_instance = self.providers.get(provider)
         if provider_instance is None:
-            # Provedor válido porém sem credenciais configuradas: erro
-            # do ambiente, não do cliente (502, não 400/422).
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="payment provider is not available",
-            )
+            raise PaymentProviderUnavailableError("payment provider is not available")
         return provider_instance
 
     def _get_owned_order(self, order_id: int, current_user: User) -> Order:
-        """Busca pedido por id e valida acesso: dono ou ADMIN."""
+        """Pedido pelo id, garantindo que só o dono (ou ADMIN) acesse."""
         order = self.order_repository.get_by_id(order_id)
         if order is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="order not found",
-            )
+            raise NotFoundError("order not found")
         if order.user_id != current_user.id and current_user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="access denied",
-            )
+            raise AccessDeniedError("access denied")
         return order
 
     def _validate_order_for_payment(self, order: Order) -> None:
         """Só pedidos pendentes e não pagos aceitam novo pagamento."""
         if order.status != OrderStatus.PENDING.value:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="payment link can be created for pending order",
-            )
+            raise InvalidOperationError("payment link can be created for pending order")
         if order.payment_status == PaymentStatus.PAID.value:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="order is already paid",
-            )
+            raise InvalidOperationError("order is already paid")
 
     def create_payment(
         self, current_user: User, payload: CreatePaymentLinkRequest
     ) -> PaymentLinkResponse:
+        """Cria (ou reutiliza) o link de pagamento de um pedido.
+
+        Idempotência: um link pendente por (pedido, provedor) é
+        reutilizado quando o usuário pedir o pagamento novamente,
+        evitando cobranças duplicadas no gateway.
+        """
         order = self._get_owned_order(payload.order_id, current_user)
         self._validate_order_for_payment(order)
 
-        # Idempotência: um link pendente por pedido/provedor é reutilizado
-        # quando o usuário pedir o pagamento novamente (evita cobranças
-        # duplicadas no gateway).
         existing_payment = self.payment_repository.get_pending_by_order_and_provider(
             order.id, payload.provider.value
         )
@@ -113,24 +107,19 @@ class PaymentService:
         try:
             provider_response = provider.create_payment_link(
                 order_id=order.id,
-                # Valor do pedido (centavos) calculado no servidor.
                 amount_cents=order.total_cents,
                 user_name=current_user.full_name,
                 user_email=current_user.email,
             )
         except PaymentGatewayError as exc:
-            # Erro do gateway é traduzido em HTTP 502 sem detalhes internos.
             logger.exception("payment link creation failed for order %s", order.id)
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=str(exc),
-            ) from exc
+            raise PaymentProviderUnavailableError(str(exc)) from exc
 
         payment = Payment(
             order_id=order.id,
             user_id=current_user.id,
             provider=payload.provider.value,
-            # BRL: valor em centavos direto do pedido (sem conversão do cliente).
+            # BRL: valor em centavos direto do pedido.
             amount_cents=order.total_cents,
             currency="BRL",
             status=PaymentStatus.PENDING.value,
@@ -157,10 +146,11 @@ class PaymentService:
         """
         order = self.order_repository.get_by_id(payment.order_id)
         if order is None:  # pragma: no cover - FK garante o pedido
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="order not found")
+            raise NotFoundError("order not found")
 
-        # Idempotência: se o pedido já foi confirmado, não repete.
         if order.payment_status != PaymentStatus.PAID.value:
+            # Um único commit cobre payment + order (integridade: os dois
+            # estados mudam juntos ou nenhum muda).
             payment.status = PaymentStatus.PAID.value
             order.payment_status = PaymentStatus.PAID.value
             order.status = OrderStatus.CONFIRMED.value
@@ -181,10 +171,7 @@ class PaymentService:
             order.id, payload.provider.value
         )
         if payment is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="payment not found",
-            )
+            raise NotFoundError("payment not found")
 
         # Idempotência: pedido já pago retorna o estado atual sem reprocessar.
         if payment.status == PaymentStatus.PAID.value:
@@ -200,10 +187,7 @@ class PaymentService:
             provider_payment = provider.get_payment_details(payload.payment_id)
         except PaymentGatewayError as exc:
             logger.exception("payment verification failed for order %s", order.id)
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=str(exc),
-            ) from exc
+            raise PaymentProviderUnavailableError(str(exc)) from exc
 
         # Valor do pagamento (centavos) deve corresponder ao cobrado pelo
         # servidor; divergentes indicam manipulação ou cobrança errada.
@@ -214,21 +198,13 @@ class PaymentService:
                 provider_payment["amount_cents"],
                 order.id,
             )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="payment amount does not match order amount",
-            )
+            raise InvalidOperationError("payment amount does not match order amount")
         if not provider_payment["is_paid"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="payment not completed",
-            )
+            raise InvalidOperationError("payment not completed")
 
         payment.provider_payment_id = (
             provider_payment["raw_payment_id"] or provider_payment["payment_id"]
         )
-        # Uma única transação cobre pagamento e pedido (integridade:
-        # os dois estados mudam juntos ou nenhum muda).
         self._mark_order_paid(payment)
 
         return PaymentVerifyResponse(
@@ -242,7 +218,7 @@ class PaymentService:
     def handle_webhook(
         self,
         provider: PaymentProviderEnum,
-        event: dict,
+        event: dict[str, Any],
     ) -> dict[str, str]:
         """Processa evento de webhook já validado por assinatura.
 
@@ -279,13 +255,9 @@ class PaymentService:
 
         payment = self.payment_repository.get_by_provider_payment_link_id(link_id)
         if payment is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="payment not found",
-            )
+            raise NotFoundError("payment not found")
 
         if payment.status == PaymentStatus.PAID.value:
-            # Idempotência: evento já processado não muda o estado de novo.
             return {"status": "already_processed"}
 
         if not paid:
@@ -313,27 +285,6 @@ class PaymentService:
             return {"status": "currency_mismatch"}
 
         payment.provider_payment_id = str(raw_payment_id or link_id)
-        # Único commit para payment + order (ver _mark_order_paid).
         self._mark_order_paid(payment)
 
         return {"status": "processed"}
-
-
-def get_providers() -> dict[PaymentProviderEnum, PaymentLinkProvider]:
-    """Dependência FastAPI: provedores com credenciais configuradas.
-
-    Isolada para poder ser sobrescrita nos testes com fakes, sem tocar
-    em código de produção ou chamar APIs reais.
-    """
-    from app.config import get_settings
-    from app.payment_providers import build_payment_providers
-
-    return build_payment_providers(get_settings())
-
-
-def build_payment_service(
-    db: Session = Depends(get_db),
-    providers: dict[PaymentProviderEnum, PaymentLinkProvider] = Depends(get_providers),
-) -> PaymentService:
-    """Dependência FastAPI: constrói o serviço com db + provedores."""
-    return PaymentService(db, providers)

@@ -11,6 +11,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 
 from app.database import engine
+from app.error_handlers import register_exception_handlers
 from app.routers import orders, payments, products, users, webhooks
 
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
     )
+    register_exception_handlers(app)
     app.include_router(users.router)
     app.include_router(products.router)
     app.include_router(orders.router)

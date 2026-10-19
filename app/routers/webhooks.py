@@ -2,9 +2,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.dependencies import build_payment_service, get_providers
 from app.enums import PaymentProviderEnum
-from app.services.payments import get_providers
-from app.services.payments import PaymentService, build_payment_service
+from app.payment_providers import PaymentLinkProvider
+from app.services.payments import PaymentService
 
 
 router = APIRouter(prefix="/api/v1/payments/webhooks", tags=["webhooks"])
@@ -21,7 +22,7 @@ async def payment_webhook(
     provider: PaymentProviderEnum,
     request: Request,
     service: PaymentService = Depends(build_payment_service),
-    providers: dict[PaymentProviderEnum, Any] = Depends(get_providers),
+    providers: dict[PaymentProviderEnum, PaymentLinkProvider] = Depends(get_providers),
 ) -> dict[str, str]:
     """Recebe webhooks Stripe/Razorpay com verificação de assinatura.
 

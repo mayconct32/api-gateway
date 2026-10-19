@@ -1,7 +1,6 @@
-from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.exceptions import NotFoundError
 from app.models.product import Product
 from app.repositories import interfaces
 from app.repositories.products import ProductRepository
@@ -15,7 +14,7 @@ from app.schemas.products import (
 
 
 class ProductService:
-    """CRUD de produtos; valores monetários sempre regularizados em centavos."""
+    """CRUD de produtos; valores monetários sempre normalizados em centavos."""
 
     def __init__(self, db: Session) -> None:
         self.repository: interfaces.ProductRepository = ProductRepository(db)
@@ -46,7 +45,7 @@ class ProductService:
     def get(self, product_id: int) -> ProductRead:
         product = self.repository.get_by_id(product_id)
         if product is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
+            raise NotFoundError("product not found")
         return self._to_read(product)
 
     def list(self, offset: int, limit: int) -> tuple[list[ProductRead], int]:
@@ -56,7 +55,7 @@ class ProductService:
     def update(self, product_id: int, payload: ProductUpdate) -> ProductRead:
         product = self.repository.get_by_id(product_id)
         if product is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
+            raise NotFoundError("product not found")
         if payload.name is not None:
             product.name = payload.name
         if payload.description is not None:
@@ -72,12 +71,7 @@ class ProductService:
         """Exclusão lógica: mantém histórico de pedidos consistente."""
         product = self.repository.get_by_id(product_id)
         if product is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
-        # Sem verificação de estado: desativar é idempotente.
+            raise NotFoundError("product not found")
         product.is_active = False
         self.repository.update(product)
         return self._to_read(product)
-
-
-def get_product_service(db: Session = Depends(get_db)) -> ProductService:
-    return ProductService(db)

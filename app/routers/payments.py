@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends
 
+from app.dependencies import build_payment_service, get_current_user
 from app.models.user import User
+from app.payment_providers import PaymentLinkProvider
+from app.services.payments import PaymentService
 from app.schemas.payments import (
     CreatePaymentLinkRequest,
     PaymentLinkResponse,
     PaymentVerifyResponse,
     VerifyPaymentRequest,
 )
-from app.services.payments import PaymentService, build_payment_service
-from app.services.users import get_current_user
 
 
 router = APIRouter(prefix="/api/v1/payments", tags=["payments"])

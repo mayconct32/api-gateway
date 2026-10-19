@@ -1,8 +1,7 @@
-from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.enums import OrderStatus
+from app.exceptions import AccessDeniedError, InvalidOperationError, NotFoundError
 from app.models.order import Order, OrderItem
 from app.models.user import User, UserRole
 from app.repositories import interfaces
@@ -55,19 +54,14 @@ class OrderService:
             if product is not None
         }
 
-        # Agrupa itens repetidos de produto e valida cada um.
         quantities: dict[int, int] = {}
         for item in payload.items:
             product = products.get(item.product_id)
             if product is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"product {item.product_id} not found",
-                )
+                raise NotFoundError(f"product {item.product_id} not found")
             if not product.is_active:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"product {item.product_id} is not available",
+                raise InvalidOperationError(
+                    f"product {item.product_id} is not available"
                 )
             quantities[item.product_id] = quantities.get(item.product_id, 0) + item.quantity
 
@@ -84,27 +78,18 @@ class OrderService:
                     unit_price_cents=int(product.price_cents),
                 )
             )
-        # Total servido em centavos, recalculado sempre no servidor.
         order.total_cents = total_cents
 
         created = self.order_repository.add(order)
         return self._to_read(created)
 
     def get_owned_order(self, order_id: int, current_user: User) -> Order:
-        """Pedido pelo id, garantindo que só o dono (ou ADMIN) acesse."""
+        """Pedidos pertencem ao dono; ADMIN pode consultar qualquer pedido."""
         order = self.order_repository.get_by_id(order_id)
         if order is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="order not found",
-            )
-        # Controle de acesso: usuários comuns só veem os próprios pedidos;
-        # ADMIN pode consultar qualquer pedido.
+            raise NotFoundError("order not found")
         if order.user_id != current_user.id and current_user.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="access denied",
-            )
+            raise AccessDeniedError("access denied")
         return order
 
     def get(self, order_id: int, current_user: User) -> OrderRead:
@@ -115,7 +100,3 @@ class OrderService:
         """Histórico do usuário autenticado (não há listing de todos)."""
         orders = self.order_repository.list_by_user(current_user.id, offset, limit)
         return [self._to_read(order) for order in orders]
-
-
-def get_order_service(db: Session = Depends(get_db)) -> OrderService:
-    return OrderService(db)

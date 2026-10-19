@@ -24,7 +24,7 @@ from app.main import create_app
 from app.models import Base
 from app.enums import PaymentProviderEnum
 from app.payment_providers import PaymentGatewayError
-from app.services.payments import get_providers
+from app.dependencies import get_providers
 
 
 class FakeProvider:
