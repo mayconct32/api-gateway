@@ -22,6 +22,75 @@ from sqlalchemy.pool import StaticPool
 from app.database import get_db
 from app.main import create_app
 from app.models import Base
+from app.enums import PaymentProviderEnum
+from app.payment_providers import PaymentGatewayError
+from app.services.payments import get_providers
+
+
+class FakeProvider:
+    """Provedor fake determinístico, satisfaz o protocolo PaymentLinkProvider.
+
+    Guarda o estado por link id; os testes podem ajustar is_paid e o
+    valor retornado em detalhes para simular divergências e fraude.
+    """
+
+    def __init__(self) -> None:
+        self.create_calls = 0
+        self.fetch_calls = 0
+        self.details: dict[str, dict] = {}
+
+    def create_payment_link(
+        self,
+        order_id: int,
+        amount_cents: int,
+        user_email: str,
+        user_name: str,
+    ) -> dict:
+        self.create_calls += 1
+        link_id = f"link-{self.create_calls}"
+        self.details[link_id] = {
+            "amount_cents": amount_cents,
+            "currency": "BRL",
+            "is_paid": False,
+        }
+        return {
+            "payment_link": f"https://pay.example/{link_id}",
+            "provider_payment_link_id": link_id,
+        }
+
+    def get_payment_details(self, payment_id: str) -> dict:
+        self.fetch_calls += 1
+        data = self.details[payment_id]
+        return {
+            "payment_id": payment_id,
+            "amount_cents": data["amount_cents"],
+            "currency": data["currency"],
+            "status": "paid" if data["is_paid"] else "created",
+            "is_paid": data["is_paid"],
+            "raw_payment_id": f"raw-{payment_id}",
+        }
+
+    def set_paid(
+        self,
+        payment_id: str,
+        amount_cents: int | None = None,
+        currency: str = "BRL",
+    ) -> None:
+        data = self.details[payment_id]
+        data["is_paid"] = True
+        if amount_cents is not None:
+            data["amount_cents"] = amount_cents
+        data["currency"] = currency
+
+    def verify_webhook_signature(self, payload: bytes, signature: str) -> dict:
+        # Assinatura fixa nos testes; qualquer outro valor é rejeitado,
+        # exercitando o caminho 403 do webhook.
+        if signature != "valid-signature":
+            raise PaymentGatewayError("invalid webhook signature")
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise PaymentGatewayError("invalid webhook payload") from exc
 
 
 @pytest.fixture()
@@ -37,7 +106,12 @@ def db_engine():
 
 
 @pytest.fixture()
-def client(db_engine):
+def fake_provider():
+    return FakeProvider()
+
+
+@pytest.fixture()
+def client(db_engine, fake_provider):
     TestingSession = sessionmaker(bind=db_engine, autoflush=False, expire_on_commit=False)
 
     def override_get_db():
@@ -49,6 +123,12 @@ def client(db_engine):
 
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
+    # Fakes respondem por ambos os provedores: os testes cobrem os dois
+    # caminhos (stripe/razorpay) sem credenciais nem chamadas reais.
+    app.dependency_overrides[get_providers] = lambda: {
+        PaymentProviderEnum.STRIPE: fake_provider,
+        PaymentProviderEnum.RAZORPAY: fake_provider,
+    }
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
