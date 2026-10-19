@@ -24,6 +24,7 @@ class OrderService:
 
     @staticmethod
     def _to_read(order: Order) -> OrderRead:
+        """Converte a entidade Order no schema de leitura da API."""
         items = [
             {
                 "product_id": item.product_id,
@@ -45,6 +46,7 @@ class OrderService:
         )
 
     def create(self, payload: OrderCreate, current_user: User) -> OrderRead:
+        """Cria o pedido do usuário com preços e total resolvidos no servidor."""
         # Tentar resolver todos os produtos primeiro: se algum faltar,
         # nada é gravado (transação única, sem pedido parcial).
         product_ids = [item.product_id for item in payload.items]
@@ -93,6 +95,7 @@ class OrderService:
         return order
 
     def get(self, order_id: int, current_user: User) -> OrderRead:
+        """Consulta um pedido (dono ou ADMIN)."""
         order = self.get_owned_order(order_id, current_user)
         return self._to_read(order)
 

@@ -15,6 +15,8 @@ class UserRole(str, Enum):
 
 
 class User(Base):
+    """Usuário autenticável, com papel USER ou ADMIN."""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)

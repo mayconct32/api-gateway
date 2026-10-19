@@ -17,6 +17,7 @@ from app.routers import orders, payments, products, users, webhooks
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Prepara o schema do banco na inicialização (contexto dev)."""
     # create_all é idempotente: cria as tabelas apenas se não existirem.
     # Em produção, prefira migrações versionadas (ex.: Alembic).
     from app.models import Base
@@ -26,6 +27,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    """Constrói a aplicação FastAPI com routers e handlers registrados."""
     app = FastAPI(
         title="Payment E-commerce API",
         version="0.2.0",

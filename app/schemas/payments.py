@@ -26,6 +26,8 @@ class PaymentLinkResponse(BaseModel):
 
 
 class VerifyPaymentRequest(BaseModel):
+    """Solicitação de confirmação de pagamento na volta do gateway."""
+
     order_id: int
     provider: PaymentProviderEnum
     # id do pagamento retornado pelo provedor na URL de retorno;
@@ -34,6 +36,8 @@ class VerifyPaymentRequest(BaseModel):
 
 
 class PaymentVerifyResponse(BaseModel):
+    """Estado combinado de pagamento e pedido após a verificação."""
+
     order_id: int
     payment_status: str
     order_status: str

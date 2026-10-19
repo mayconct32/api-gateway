@@ -9,6 +9,7 @@ verifica o estado do pagamento sem depender do callback.
 """
 
 import logging
+from typing import Any
 
 import razorpay
 
@@ -91,7 +92,7 @@ class RazorpayPaymentLink:
             raw_payment_id=payment.get("id"),
         )
 
-    def verify_webhook_signature(self, payload: bytes, signature: str) -> dict:
+    def verify_webhook_signature(self, payload: bytes, signature: str) -> dict[str, Any]:
         """Valida X-Razorpay-Signature (HMAC SHA256 do payload cru).
 
         Lança PaymentGatewayError se o segredo não está configurado ou

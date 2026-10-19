@@ -20,6 +20,7 @@ class ProductService:
         self.repository: interfaces.ProductRepository = ProductRepository(db)
 
     def _to_read(self, product: Product) -> ProductRead:
+        """Converte a entidade Product no schema de leitura da API."""
         data = {
             "id": product.id,
             "name": product.name,
@@ -31,6 +32,7 @@ class ProductService:
         return ProductRead.model_validate(data)
 
     def create(self, payload: ProductCreate) -> ProductRead:
+        """Cadastra um produto ativo com preço convertido para centavos."""
         product = self.repository.create(
             Product(
                 name=payload.name,
@@ -42,16 +44,19 @@ class ProductService:
         return self._to_read(product)
 
     def get(self, product_id: int) -> ProductRead:
+        """Consulta um produto ativo pelo id."""
         product = self.repository.get_by_id(product_id)
         if product is None:
             raise NotFoundError("product not found")
         return self._to_read(product)
 
     def list(self, offset: int, limit: int) -> tuple[list[ProductRead], int]:
+        """Lista paginada de produtos ativos, com o total."""
         products, total = self.repository.list(offset, limit)
         return [self._to_read(p) for p in products], total
 
     def update(self, product_id: int, payload: ProductUpdate) -> ProductRead:
+        """Atualiza parcialmente um produto existente."""
         product = self.repository.get_by_id(product_id)
         if product is None:
             raise NotFoundError("product not found")

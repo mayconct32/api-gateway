@@ -42,7 +42,7 @@ async def payment_webhook(
     # A verificação acontece dentro do provedor (cada gateway tem seu
     # esquema de assinatura); erro -> 403, sem expor detalhes internos.
     try:
-        event: Any = provider_instance.verify_webhook_signature(payload, signature)
+        event: dict[str, Any] = provider_instance.verify_webhook_signature(payload, signature)
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

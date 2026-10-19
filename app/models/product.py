@@ -7,6 +7,8 @@ from app.models.base import Base
 
 
 class Product(Base):
+    """Produto do catálogo, com preço em centavos e exclusão lógica."""
+
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(primary_key=True)

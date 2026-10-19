@@ -20,6 +20,7 @@ class UserService:
         self.repository: interfaces.UserRepository = UserRepository(db)
 
     def register(self, payload: UserCreate) -> UserRead:
+        """Cadastra usuário com papel comum; recusa e-mail já registrado."""
         if self.repository.get_by_email(payload.email):
             raise ConflictError("email already registered")
         user = self.repository.create(
@@ -57,6 +58,7 @@ class UserService:
         return user
 
     def require_admin(self, user: User) -> None:
+        """Garante papel ADMIN, recusando usuários comuns."""
         if user.role != UserRole.ADMIN:
             raise AccessDeniedError("admin access required")
 
@@ -70,9 +72,11 @@ class UserService:
         return UserRead.model_validate(user)
 
     def list(self, offset: int, limit: int) -> list[UserRead]:
+        """Lista paginada de usuários (uso restrito a ADMIN)."""
         return [UserRead.model_validate(u) for u in self.repository.list(offset, limit)]
 
     def update(self, user_id: int, payload: UserUpdate, current_user: User) -> UserRead:
+        """Atualiza dados básicos do próprio usuário (ou qualquer um, ADMIN)."""
         if user_id != current_user.id and current_user.role != UserRole.ADMIN:
             raise AccessDeniedError("access denied")
         user = self.repository.get_by_id(user_id)

@@ -12,6 +12,7 @@ class ProductRepository(ProductRepositoryProtocol):
         self.db = db
 
     def get_by_id(self, product_id: int) -> Product | None:
+        """Recupera o produto pelo id, ou None se inexistente."""
         return self.db.get(Product, product_id)
 
     def list(
@@ -30,12 +31,14 @@ class ProductRepository(ProductRepositoryProtocol):
         return list(rows), int(total or 0)
 
     def create(self, product: Product) -> Product:
+        """Persiste um novo produto e devolve a instância recarregada."""
         self.db.add(product)
         self.db.commit()
         self.db.refresh(product)
         return product
 
     def update(self, product: Product) -> Product:
+        """Efetiva alterações pendentes e devolve a instância recarregada."""
         self.db.commit()
         self.db.refresh(product)
         return product

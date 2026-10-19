@@ -18,6 +18,8 @@ def cents_to_brl(cents: int) -> float:
 
 
 class ProductCreate(BaseModel):
+    """Payload de criação de produto (entrada em reais, guarda em centavos)."""
+
     name: str = Field(min_length=1, max_length=140)
     description: str | None = Field(default=None, max_length=2000)
     # Preço informado em reais (ex.: 19.90); convertido para centavos.
@@ -25,6 +27,8 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
+    """Payload de atualização parcial; campos ausentes não são alterados."""
+
     name: str | None = Field(default=None, min_length=1, max_length=140)
     description: str | None = Field(default=None, max_length=2000)
     price: float | None = Field(default=None, gt=0, le=100_000)
@@ -32,6 +36,8 @@ class ProductUpdate(BaseModel):
 
 
 class ProductRead(BaseModel):
+    """Produto devolvido nas respostas da API (preço em reais)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int

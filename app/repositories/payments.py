@@ -13,12 +13,14 @@ class PaymentRepository(PaymentRepositoryProtocol):
         self.db = db
 
     def create(self, payment: Payment) -> Payment:
+        """Persiste um novo payment e devolve a instância recarregada."""
         self.db.add(payment)
         self.db.commit()
         self.db.refresh(payment)
         return payment
 
     def update(self, payment: Payment) -> Payment:
+        """Efetiva alterações pendentes e devolve a instância recarregada."""
         self.db.commit()
         self.db.refresh(payment)
         return payment

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.dependencies import get_current_admin, get_current_user, get_user_service
+from app.dependencies import get_current_user, get_user_service
 from app.models.user import User
 from app.services.users import UserService
 from app.schemas.users import UserCreate, UserRead, UserUpdate
@@ -39,7 +39,7 @@ def read_me(current_user=Depends(get_current_user)) -> UserRead:
 @router.get("/users/{user_id}", response_model=UserRead)
 def read_user(
     user_id: int,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
 ) -> UserRead:
     """Consulta de usuário; dono ou ADMIN."""
@@ -50,7 +50,7 @@ def read_user(
 def update_user(
     user_id: int,
     payload: UserUpdate,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
 ) -> UserRead:
     """Atualização de dados básicos (nome/email); dono ou ADMIN."""
@@ -61,7 +61,7 @@ def update_user(
 def list_users(
     skip: int = 0,
     limit: int = 50,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
 ) -> list[UserRead]:
     """Listagem de usuários (ADMIN); paginação skip/limit."""

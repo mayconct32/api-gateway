@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 
 from app.dependencies import build_payment_service, get_current_user
 from app.models.user import User
-from app.payment_providers import PaymentLinkProvider
 from app.services.payments import PaymentService
 from app.schemas.payments import (
     CreatePaymentLinkRequest,

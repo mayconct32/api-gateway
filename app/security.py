@@ -14,6 +14,7 @@ def hash_password(plain: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    """Verifica a senha em claro contra o hash bcrypt."""
     try:
         return bcrypt.checkpw(plain.encode(), hashed.encode())
     except ValueError:

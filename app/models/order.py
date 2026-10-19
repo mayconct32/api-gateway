@@ -8,6 +8,8 @@ from app.models.base import Base
 
 
 class Order(Base):
+    """Pedido de um usuário, com total recalculado sempre no servidor."""
+
     __tablename__ = "orders"
     __table_args__ = (
         # Integridade financeira: o total nunca pode ficar negativo.
@@ -28,6 +30,8 @@ class Order(Base):
 
 
 class OrderItem(Base):
+    """Item de um pedido, com snapshot do preço unitário em centavos."""
+
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)

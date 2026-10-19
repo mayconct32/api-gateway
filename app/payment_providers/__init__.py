@@ -5,7 +5,7 @@ uma interface estrutural (Protocol) única: o serviço de pagamento
 consome apenas esta interface, sem conhecer detalhes de cada gateway.
 """
 
-from typing import Protocol, TypedDict
+from typing import Any, Protocol, TypedDict
 
 from app.config import Settings
 from app.enums import PaymentProviderEnum
@@ -21,18 +21,22 @@ class PaymentGatewayError(Exception):
 
 
 class ProviderLinkResult(TypedDict):
+    """Dados retornados pela criação de um link de pagamento."""
+
     payment_link: str
     provider_payment_link_id: str
 
 
 class ProviderPaymentDetails(TypedDict):
+    """Estado de um pagamento no gateway, normalizado entre provedores."""
+
     payment_id: str
     amount_cents: int
     currency: str
     status: str
     is_paid: bool
-    # Some gateways return the id of the underlying charge/payment
-    # separate from the link/session id; useful for reconciliation.
+    # Algumas gateways devolvem o id da cobrança subjacente separado do
+    # id link/session; útil para conciliação.
     raw_payment_id: str | None
 
 
@@ -49,9 +53,17 @@ class PaymentLinkProvider(Protocol):
         amount_cents: int,
         user_email: str,
         user_name: str,
-    ) -> ProviderLinkResult: ...
+    ) -> ProviderLinkResult:
+        """Cria o link de cobrança do pedido; lança PaymentGatewayError em falha."""
+        ...
 
-    def get_payment_details(self, payment_id: str) -> ProviderPaymentDetails: ...
+    def get_payment_details(self, payment_id: str) -> ProviderPaymentDetails:
+        """Consulta o estado do pagamento no gateway e o normaliza."""
+        ...
+
+    def verify_webhook_signature(self, payload: bytes, signature: str) -> dict[str, Any]:
+        """Valida a assinatura do webhook e devolve o evento como dict."""
+        ...
 
 
 def build_payment_providers(
