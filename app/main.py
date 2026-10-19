@@ -12,8 +12,6 @@ from fastapi import FastAPI
 
 from app.database import engine
 from app.routers import orders, payments, products, users, webhooks
-from app.payment_providers import build_payment_providers
-from app.config import get_settings
 
 
 @asynccontextmanager

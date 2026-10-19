@@ -40,4 +40,4 @@ class Payment(Base):
     provider_payment_link_id: Mapped[str] = mapped_column(String(255), nullable=False)
     provider_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    order: Mapped["Order"] = relationship(back_populates="payments")
+    order: Mapped["Order"] = relationship(back_populates="payments")  # noqa: F821

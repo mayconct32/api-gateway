@@ -5,7 +5,7 @@ uma interface estrutural (Protocol) única: o serviço de pagamento
 consome apenas esta interface, sem conhecer detalhes de cada gateway.
 """
 
-from typing import Any, Protocol, TypedDict
+from typing import Protocol, TypedDict
 
 from app.config import Settings
 from app.enums import PaymentProviderEnum

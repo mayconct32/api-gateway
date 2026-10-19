@@ -9,7 +9,6 @@ import logging
 from typing import Any
 
 import stripe
-from fastapi import HTTPException, status
 
 from app.payment_providers import (
     PaymentGatewayError,
