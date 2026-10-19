@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
 from app.enums import PaymentProviderEnum
 

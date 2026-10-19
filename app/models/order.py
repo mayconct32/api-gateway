@@ -24,7 +24,8 @@ class Order(Base):
     items: Mapped[list["OrderItem"]] = relationship(
         back_populates="order", cascade="all, delete-orphan", lazy="selectin"
     )
-    payments: Mapped[list["Payment"]] = relationship(back_populates="order")
+    # Forward reference em string: resolvida pelo registry do SQLAlchemy.
+    payments: Mapped[list["Payment"]] = relationship(back_populates="order")  # noqa: F821
 
 
 class OrderItem(Base):
