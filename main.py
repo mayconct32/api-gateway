@@ -1,8 +1,3 @@
-from fastapi import FastAPI
+from app.main import app
 
-from router import payment
-
-
-app = FastAPI()
-
-app.include_router(payment)
+__all__ = ["app"]

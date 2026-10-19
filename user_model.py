@@ -1,1 +1,0 @@
-"""model para User(DeclarativeBase)"""
