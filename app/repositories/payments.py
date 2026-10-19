@@ -3,9 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.enums import PaymentStatus
 from app.models.payment import Payment
+from app.repositories.interfaces import PaymentRepository as PaymentRepositoryProtocol
 
 
-class PaymentRepository:
+class PaymentRepository(PaymentRepositoryProtocol):
+    """Implementação SQLAlchemy de persistência de pagamentos."""
+
     def __init__(self, db: Session) -> None:
         self.db = db
 

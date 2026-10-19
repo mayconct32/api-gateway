@@ -2,9 +2,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.order import Order
+from app.repositories.interfaces import OrderRepository as OrderRepositoryProtocol
 
 
-class OrderRepository:
+class OrderRepository(OrderRepositoryProtocol):
+    """Implementação SQLAlchemy de persistência de pedidos."""
+
     def __init__(self, db: Session) -> None:
         self.db = db
 

@@ -1,9 +1,10 @@
 """Camada de acesso a dados.
 
-Cada repositório é uma faixa fina sobre a Session do SQLAlchemy.
-Não há interface abstrata aqui de propósito: só existe uma
-implementação concreta (SQLAlchemy). A separação por Protocol existe
-apenas onde há implementações reais alternativas — os gateways de
-pagamento em app/payment_providers. Se um dia a persistência mudar,
-a interface dos repositórios é a própria assinatura destes métodos.
+Cada repositório é uma faixa fina sobre a Session do SQLAlchemy. Os
+contratos das operações ficam declarados em interfaces estruturais
+(Protocol) em repositories/interfaces.py — e os serviços dependem
+apenas da interface, nunca da implementação concreta. Hoje só existe
+uma implementação por contrato (SQLAlchemy); os Protocol permitem
+alternar a persistência ou injetar fakes em testes sem tocar nos
+serviços.
 """

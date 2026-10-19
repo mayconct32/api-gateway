@@ -2,9 +2,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.repositories.interfaces import UserRepository as UserRepositoryProtocol
 
 
-class UserRepository:
+class UserRepository(UserRepositoryProtocol):
+    """Implementação SQLAlchemy de persistência de usuários."""
+
     def __init__(self, db: Session) -> None:
         self.db = db
 

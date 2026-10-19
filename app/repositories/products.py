@@ -2,9 +2,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.product import Product
+from app.repositories.interfaces import ProductRepository as ProductRepositoryProtocol
 
 
-class ProductRepository:
+class ProductRepository(ProductRepositoryProtocol):
+    """Implementação SQLAlchemy de persistência de produtos."""
+
     def __init__(self, db: Session) -> None:
         self.db = db
 

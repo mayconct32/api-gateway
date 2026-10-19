@@ -5,6 +5,7 @@ from app.database import get_db
 from app.enums import OrderStatus
 from app.models.order import Order, OrderItem
 from app.models.user import User, UserRole
+from app.repositories import interfaces
 from app.repositories.orders import OrderRepository
 from app.repositories.products import ProductRepository
 from app.schemas.orders import OrderCreate, OrderRead
@@ -19,8 +20,8 @@ class OrderService:
     """
 
     def __init__(self, db: Session) -> None:
-        self.order_repository = OrderRepository(db)
-        self.product_repository = ProductRepository(db)
+        self.order_repository: interfaces.OrderRepository = OrderRepository(db)
+        self.product_repository: interfaces.ProductRepository = ProductRepository(db)
 
     @staticmethod
     def _to_read(order: Order) -> OrderRead:

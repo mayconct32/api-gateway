@@ -18,6 +18,7 @@ from app.payment_providers import (
     PaymentGatewayError,
     PaymentLinkProvider,
 )
+from app.repositories import interfaces
 from app.repositories.orders import OrderRepository
 from app.repositories.payments import PaymentRepository
 from app.schemas.payments import (
@@ -42,8 +43,8 @@ class PaymentService:
         providers: dict[PaymentProviderEnum, PaymentLinkProvider],
     ) -> None:
         self.db = db
-        self.order_repository = OrderRepository(db)
-        self.payment_repository = PaymentRepository(db)
+        self.order_repository: interfaces.OrderRepository = OrderRepository(db)
+        self.payment_repository: interfaces.PaymentRepository = PaymentRepository(db)
         self.providers = providers
 
     def _provider_for(self, provider: PaymentProviderEnum) -> PaymentLinkProvider:

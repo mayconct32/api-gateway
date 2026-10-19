@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.product import Product
+from app.repositories import interfaces
 from app.repositories.products import ProductRepository
 from app.schemas.products import (
     ProductCreate,
@@ -17,7 +18,7 @@ class ProductService:
     """CRUD de produtos; valores monetários sempre regularizados em centavos."""
 
     def __init__(self, db: Session) -> None:
-        self.repository = ProductRepository(db)
+        self.repository: interfaces.ProductRepository = ProductRepository(db)
 
     def _to_read(self, product: Product) -> ProductRead:
         data = {

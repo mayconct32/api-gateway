@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User, UserRole
+from app.repositories import interfaces
 from app.repositories.users import UserRepository
 from app.security import create_access_token, decode_access_token, hash_password, verify_password
 from app.schemas.users import UserCreate, UserRead, UserUpdate
@@ -18,7 +19,7 @@ class UserService:
     """Regras de negócio de usuários e credenciais."""
 
     def __init__(self, db: Session) -> None:
-        self.repository = UserRepository(db)
+        self.repository: interfaces.UserRepository = UserRepository(db)
 
     def register(self, payload: UserCreate) -> UserRead:
         if self.repository.get_by_email(payload.email):
