@@ -1,4 +1,4 @@
-# Payment E-commerce API
+# E-commerce
 
 E-commerce em **FastAPI + SQLAlchemy** com pedidos e pagamentos via **Stripe Checkout** e **Razorpay Payment Link**, autenticação JWT e valores sempre calculados no servidor.
 
